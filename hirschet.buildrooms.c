@@ -131,7 +131,7 @@ int main(){
 
 	//Make game directory and room files:
 	//game directory:
-	if (mkdir(directory) == 0){
+	if (mkdir(directory, 0777) == 0){
 		//make roomfiles:
 		filename = calloc(128, sizeof(char));
 		for (i = 0; i < num_rooms; i++){
