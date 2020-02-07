@@ -53,7 +53,7 @@ void add_connection(struct Room rooms[num_rooms]){
 int main(){
 	int i, j;
 	int name_index, is_open, start_index, end_index;
-	struct Room rooms[num_rooms];
+	struct Room* rooms;
 	char * room_names[num_room_names];
 	room_names[0] = "Lain";
 	room_names[1] = "Batou";
@@ -71,6 +71,9 @@ int main(){
 	char * pidstr = malloc(sizeof(char) * 24);
 	time_t t;
 	FILE * fp;
+
+	//make rooms mem:
+	rooms = calloc(num_rooms, sizeof(struct Room));
 	
 	//make directory name:
 	sprintf(pidstr, "%d", (int) getpid());
@@ -80,7 +83,8 @@ int main(){
 	free(pidstr);
 
 	srand((unsigned) time(&t));
-
+	
+	//Create rooms
 	for (i = 0; i < num_rooms; i++){
 		//Assign Room Names
 		//get random room name, but make sure it hasn't already been used
@@ -92,16 +96,16 @@ int main(){
 			}
 		} while (is_open != 1);
 		//set room to random name
-		rooms[i].room_name = (char*) malloc(sizeof(char) * 8);
+		rooms[i].room_name = (char*) calloc(8, sizeof(char));
 		strcpy(rooms[i].room_name, room_names[name_index]);
 		//printf("room_%d is named %s\n", i, rooms[i].room_name);
 
 		//Assign Default Room Type
-		rooms[i].room_type = (char*) malloc(sizeof(char) * 16);
+		rooms[i].room_type = (char*) calloc(16, sizeof(char));
 		strcpy(rooms[i].room_type, "MID_ROOM");
 
 		//Alloc Connections memory
-		rooms[i].connections = malloc(sizeof(struct Room*) * 6);
+		rooms[i].connections = calloc(6, sizeof(struct Room*));
 		rooms[i].num_connections = 0;
 	}
 	//Assign random Start and End rooms:
@@ -135,6 +139,7 @@ int main(){
 		//make roomfiles:
 		filename = calloc(128, sizeof(char));
 		for (i = 0; i < num_rooms; i++){
+			//simultaneously create files and free memory:
 			//construct filename:
 			strcpy(filename, "./");
 			strcpy(filename, directory);
@@ -144,26 +149,31 @@ int main(){
 			fp = fopen(filename, "w");
 			//print name:
 			fprintf(fp, "ROOM NAME: %s\n", rooms[i].room_name);
+			free(rooms[i].room_name);
 			//print connections:
 			for (j = 0; j < rooms[i].num_connections; j++){
 				fprintf(fp, "CONNECTION %d: %s\n", j + 1, rooms[i].connections[j]->room_name);
 			}
+			free(rooms[i].connections);
 			//print type:
 			fprintf(fp, "ROOM TYPE: %s\n", rooms[i].room_type);
+			free(rooms[i].room_type);
 		}
+		free(filename);
 	}
 	//return with error code if the directory couldn't be made
 	else {
 		printf("there was an issue creating the directory");
+		for (i = 0; i < num_rooms; i++){
+			free(rooms[i].room_name);
+			free(rooms[i].connections);
+			free(rooms[i].room_type);\
+		}
+		free(rooms);
+		return 1;
 	}
-
-	//clean memory:
 	free(directory);
-	for (i = 0; i < num_rooms; i++){
-		free(rooms[i].room_name);
-		free(rooms[i].room_type);
-		if (rooms[i].connections != NULL) free(rooms[i].connections);
-	}
-
+	free(rooms);
+	
 	return 0;
 }
