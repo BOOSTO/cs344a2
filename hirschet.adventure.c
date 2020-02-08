@@ -9,8 +9,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include<pthread.h>
+#include<time.h>
 
 const int num_rooms = 7;
+
+pthread_mutex_t myMutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct Room {
 	char* name;
@@ -57,13 +61,23 @@ char* getNewestRoomsDir(){
 	return newestDirName;
 }
 
+void printTime(void* arg){
+	pthread_mutex_lock(&myMutex);
+
+	printf("\n\ngonk\n\n");
+
+	pthread_mutex_unlock(&myMutex);
+	return;
+}
+
 void playTheGodForsakenGame(struct Room* rooms){
 	struct Room* currRoom;
 	int i, j;
 	char* input;
 	int badInput, pathLen;
 	struct Room** path;
-
+	pthread_t timeThread;
+	
 	//get the start room:
 	for (i = 0; i < num_rooms; i++){
 		if (strcmp(rooms[i].type, "START_ROOM") == 0) currRoom = &rooms[i];
@@ -72,20 +86,23 @@ void playTheGodForsakenGame(struct Room* rooms){
 	input = malloc(sizeof(char) * 256);
 	path = malloc(sizeof(struct Room*) * 256);
 	pathLen = 0;
-	do {
-		
+	do{
+		//Game Dialog:	
 		printf("CURRENT LOCATION: %s\nPOSSIBLE CONNECTIONS:", currRoom->name);
 		for (i = 0; i < currRoom->num_connections; i++){
 			printf(" %s", currRoom->connections[i]);
 			if (i < currRoom->num_connections - 1) printf(",");
 		}
 		printf(".\nWHERE TO? >");
+		//Get input:
 		fgets(input, 255, stdin);
 		input[strlen(input) - 1] = '\0';
-
+		
+		//Validate input:
 		badInput = 1;
+		//Check if it's a room name
 		for (i = 0; i < num_rooms; i++){
-			if (strcmp(input, rooms[i].name) == 0){
+			if (strcmp(input, rooms[i].name) == 0 && strcmp(input, currRoom->name) != 0){
 				printf("\n");
 				//update room
 				badInput = 0;
@@ -97,21 +114,24 @@ void playTheGodForsakenGame(struct Room* rooms){
 				break;
 			}	
 		}
+		//check if it's time
 		if (strcmp(input, "time") == 0){
-			printf("\nit's time for some RAM RANCH!\n\n");
+			pthread_create(&timeThread, NULL, printTime, NULL);
+			pthread_join(timeThread, NULL);
 		}
+		//check if they fucked up
 		else if (badInput == 1){
 			printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n\n");
 		}
-
-	} while(strcmp(currRoom->type, "END_ROOM") != 0);
+	} while(strcmp(currRoom->type, "END_ROOM") != 0); //repeat until the end room is reached
 	free(input);
 
+	//Victory speech
 	printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\nYOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", pathLen);
+	//Print the path
 	for (i = 0; i < pathLen; i++){
 		printf("%s\n", path[i]->name);
 	}
-
 	free(path);
 	
 	return;
@@ -126,7 +146,7 @@ int main(){
 
 	rooms = malloc(sizeof(struct Room) * num_rooms);	
 	
-	printf("Rooms directory is: %s\n", roomsDir);
+	//printf("Rooms directory is: %s\n", roomsDir);
 
 	int i, j;
 	DIR* dirToCheck;
@@ -182,14 +202,26 @@ int main(){
 			fclose(fp);
 		}
 	}
+	closedir(dirToCheck);
 
 	//play the game:
 	playTheGodForsakenGame(rooms);
 
+	
+	//clean the mem:
+	for (i = 0; i < num_rooms; i++){
+		free(rooms[i].name);
+		free(rooms[i].type);
+		for (j = 0; j < rooms[i].num_connections; j++){
+			free(rooms[i].connections[j]);
+		}
+		free(rooms[i].connections);
+	}
 	free(fullFilePath);
 	free(fileText);
 	free(rooms);
 	free(roomsDir);
+	pthread_mutex_destroy(&myMutex);
 
 	return 0;
 }
