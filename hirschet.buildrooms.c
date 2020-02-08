@@ -67,7 +67,7 @@ int main(){
 	room_names[9] = "Eliasz";
 	char * directory;
 	char * filename;
-	char directory_template[] = "hirschet.rooms.";
+	char directory_template[] = "./hirschet.rooms.";
 	char * pidstr = malloc(sizeof(char) * 24);
 	time_t t;
 	FILE * fp;
@@ -139,25 +139,21 @@ int main(){
 		//make roomfiles:
 		filename = calloc(128, sizeof(char));
 		for (i = 0; i < num_rooms; i++){
-			//simultaneously create files and free memory:
 			//construct filename:
-			strcpy(filename, "./");
 			strcpy(filename, directory);
 			strcat(filename, "/");
 			strcat(filename, rooms[i].room_name);
 			//open filename for writing:
-			fp = fopen(filename, "w");
+			fp = fopen(filename, "w+");
 			//print name:
 			fprintf(fp, "ROOM NAME: %s\n", rooms[i].room_name);
-			free(rooms[i].room_name);
 			//print connections:
 			for (j = 0; j < rooms[i].num_connections; j++){
 				fprintf(fp, "CONNECTION %d: %s\n", j + 1, rooms[i].connections[j]->room_name);
 			}
-			free(rooms[i].connections);
 			//print type:
 			fprintf(fp, "ROOM TYPE: %s\n", rooms[i].room_type);
-			free(rooms[i].room_type);
+			fclose(fp);
 		}
 		free(filename);
 	}
@@ -173,6 +169,11 @@ int main(){
 		return 1;
 	}
 	free(directory);
+	for (i = 0; i < num_rooms; i++){
+		free(rooms[i].room_name);
+		free(rooms[i].connections);
+		free(rooms[i].room_type);
+	}
 	free(rooms);
 	
 	return 0;
