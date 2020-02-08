@@ -14,6 +14,7 @@ struct Room {
 	int num_connections;
 };
 
+//check rooms array to see if all rooms have < 3 connections
 int is_graph_complete(struct Room rooms[num_rooms]){
 	int i;
 	for (i = 0; i < num_rooms; i++){
@@ -22,6 +23,7 @@ int is_graph_complete(struct Room rooms[num_rooms]){
 	return 1;
 }
 
+//Check if a connection between two rooms is already present
 int connection_exists(struct Room rooms[num_rooms], int index1, int index2){
 	int i;
 	for (i = 0; i < rooms[index1].num_connections; i++){
@@ -160,6 +162,7 @@ int main(){
 	//return with error code if the directory couldn't be made
 	else {
 		printf("there was an issue creating the directory");
+		//clean mem
 		for (i = 0; i < num_rooms; i++){
 			free(rooms[i].room_name);
 			free(rooms[i].connections);
@@ -168,6 +171,7 @@ int main(){
 		free(rooms);
 		return 1;
 	}
+	//clean the memory
 	free(directory);
 	for (i = 0; i < num_rooms; i++){
 		free(rooms[i].room_name);

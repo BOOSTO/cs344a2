@@ -61,10 +61,31 @@ char* getNewestRoomsDir(){
 	return newestDirName;
 }
 
-void printTime(void* arg){
+void* printTime(void* arg){
 	pthread_mutex_lock(&myMutex);
 
-	printf("\n\ngonk\n\n");
+	FILE* fp;
+	char* timeStr;	
+
+	//Invent the very concept of time:
+	time_t currentTime;
+	struct tm *localTime;
+	//current time:
+	currentTime = time(NULL);
+	localTime = localtime(&currentTime);
+	//make time a formatted string:
+	timeStr = malloc(sizeof(char) * 64);
+	strftime(timeStr, 64, "%l:%M%P, %A, %B %e, %Y", localTime);
+
+	//printf("\n\n	%s\n\n", timeStr);
+	
+	//Write time to file:
+	fp = fopen("currentTime.txt", "w");
+	fprintf(fp, "%s\n", timeStr);
+	fclose(fp);
+	
+	//free dynamic memory:
+	free(timeStr);	
 
 	pthread_mutex_unlock(&myMutex);
 	return;
@@ -77,6 +98,8 @@ void playTheGodForsakenGame(struct Room* rooms){
 	int badInput, pathLen;
 	struct Room** path;
 	pthread_t timeThread;
+	FILE* ftime;
+	char* timeText;
 	
 	//get the start room:
 	for (i = 0; i < num_rooms; i++){
@@ -118,6 +141,19 @@ void playTheGodForsakenGame(struct Room* rooms){
 		if (strcmp(input, "time") == 0){
 			pthread_create(&timeThread, NULL, printTime, NULL);
 			pthread_join(timeThread, NULL);
+			
+			//open the time file
+			ftime = fopen("currentTime.txt", "r");
+			
+			//Read contents into string:
+			timeText = malloc(sizeof(char) * 64);
+			fgets(timeText, 64, ftime);
+			fclose(ftime);
+
+			//print contents to screen:
+			printf("\n%s\n", timeText);
+			//free memory:
+			free(timeText);
 		}
 		//check if they fucked up
 		else if (badInput == 1){
@@ -132,7 +168,7 @@ void playTheGodForsakenGame(struct Room* rooms){
 	for (i = 0; i < pathLen; i++){
 		printf("%s\n", path[i]->name);
 	}
-	free(path);
+	free(path); //free path since it's done being used
 	
 	return;
 }
@@ -142,8 +178,10 @@ int main(){
 	FILE* fp;
 	struct Room* rooms;
 
+	//get the latest rooms directory
 	roomsDir = getNewestRoomsDir();	
 
+	//init rooms array
 	rooms = malloc(sizeof(struct Room) * num_rooms);	
 	
 	//printf("Rooms directory is: %s\n", roomsDir);
@@ -157,23 +195,28 @@ int main(){
 	//Construct the rooms array:
 	fileText = malloc(sizeof(char) * 128);
 	fullFilePath = malloc(sizeof(char) * 256);
+	
+	//Access directory:
 	dirToCheck = opendir(roomsDir);
-	readdir(dirToCheck);
-	readdir(dirToCheck);
+	readdir(dirToCheck); //ignore .
+	readdir(dirToCheck); //ignore ..
 	if (dirToCheck > 0){
 		for (i = 0; i < num_rooms; i++){
-			
+			//initialize memory:		
 			rooms[i].name = malloc(sizeof(char) * 32);
 			rooms[i].type = malloc(sizeof(char) * 32);
 			rooms[i].num_connections = 0;
 			rooms[i].connections = malloc(sizeof(char *) * 6);
-
+			
+			//get rooms file
 			fileInDir = readdir(dirToCheck);
-
+			
+			//construct full filepath from current directory
 			strcpy(fullFilePath, roomsDir);
 			strcat(fullFilePath, "/");
 			strcat(fullFilePath, fileInDir->d_name);
-
+			
+			//open it
 			fp = fopen(fullFilePath, "r");
 
 			//get name:	
@@ -184,6 +227,7 @@ int main(){
 
 			//get connections (as names):
 			fgets(fileText, 127, fp);
+			//repeat this process as long as there are more connections
 			while(fileText[0] == 'C'){
 				rooms[i].connections[rooms[i].num_connections] = malloc(sizeof(char) * 32);
 				fileText[strlen(fileText) - 1] = '\0';
